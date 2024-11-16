@@ -1,0 +1,9 @@
+export { default as Employee } from '../../assets/images/employee.svg';
+export { default as Present } from '../../assets/images/present.svg';
+export { default as Absent } from '../../assets/images/absent.svg';
+export { default as Fire } from '../../assets/images/fire.svg';
+export { default as Smoke } from '../../assets/images/smoke.svg';
+export { default as Grass } from '../../assets/images/Igrass.svg';
+export { default as Intrusion } from '../../assets/images/intrusion.svg';
+export { default as Crowd } from '../../assets/images/crowd.svg';
+export { default as Vehicle } from '../../assets/images/vehicle.svg';
