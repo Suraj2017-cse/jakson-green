@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, Button, CircularProgress, Grid } from '@mui/material';
+import { TextField, Button, CircularProgress, Grid, Modal, Box } from '@mui/material';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
@@ -8,24 +8,7 @@ const DownloadReport = () => {
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState([]);
-
-  // Function to convert base64 string to Blob
-  const base64ToBlob = (base64Str) => {
-    const byteCharacters = atob(base64Str.split(',')[1]); // Remove data:image/png;base64,
-    const byteArrays = [];
-
-    for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
-      const slice = byteCharacters.slice(offset, offset + 1024);
-      const byteNumbers = new Array(slice.length);
-      for (let i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
-    }
-
-    return new Blob(byteArrays, { type: 'image/jpeg' }); // Convert to JPEG
-  };
+  const [openPreview, setOpenPreview] = useState(false);
 
   // Function to fetch report data from the API
   const fetchReportData = async () => {
@@ -55,6 +38,7 @@ const DownloadReport = () => {
       }));
 
       setReportData(updatedData); // Store the report data in state
+      setOpenPreview(true); // Open the preview modal
     } catch (error) {
       console.error('Error fetching data:', error);
       alert('Some error occurred while fetching the report data.');
@@ -63,65 +47,65 @@ const DownloadReport = () => {
     }
   };
 
-  // Function to generate PDF and trigger download
-  const handleDownload = () => {
-    fetchReportData().then(() => {
-      if (reportData.length > 0) {
-        const doc = new jsPDF();
-        
-        // Set document title
-        doc.setFontSize(18);
-        doc.text('Employee Report', 20, 20);
+  // Function to generate and download the PDF
+  const generatePDF = () => {
+    const doc = new jsPDF();
 
-        // Table headers
-        const headers = ['S.No', 'Photo', 'Name', 'User ID', 'In-Time', 'Out-Time', 'Duration', 'Date', 'Emp Type'];
+    // Set document title
+    doc.setFontSize(18);
+    doc.text('Jakson Green - Report', 20, 20);
 
-        // Adding Table data
-        const body = reportData.map((item) => [
-          item.sNo,
-          item.photo, // This will need to be handled for images
-          item.empName,
-          item.userID,
-          item.timeIn,
-          item.timeOut,
-          item.duration,
-          item.recDateTime,
-          item.empType,
-        ]);
+    // Add the date range to the PDF
+    doc.setFontSize(12);
+    doc.text(`From: ${startDate} To: ${endDate}`, 20, 30);
 
-        // Adding the table using autoTable plugin
-        let yOffset = 30;
-        doc.autoTable({
-          head: [headers],
-          body: body,
-          startY: yOffset,
-          theme: 'grid',
-          columnStyles: {
-            1: { cellWidth: 30, cellHeight: 30 }, // Photo column
-          },
-          bodyStyles: {
-            valign: 'middle',
-            halign: 'center',
-          },
-        });
+    // Table headers
+    const headers = ['S.No', 'Photo', 'Name', 'User ID', 'In-Time', 'Out-Time', 'Duration', 'Date', 'Emp Type'];
 
-        // Add image to PDF: Convert the base64 image to a Blob and add it
-        reportData.forEach((item, index) => {
-          const blob = base64ToBlob(item.photo); // Convert base64 to Blob (JPEG)
-          const img = URL.createObjectURL(blob); // Create a URL for the image blob
-          const x = 20;
-          const y = yOffset + 10 + (index + 1) * 20; // Position each image
+    // Adding Table data
+    const body = reportData.map((item) => [
+      item.sNo,
+      '', // We'll handle image rendering separately (leave blank for now)
+      item.empName,
+      item.userID,
+      item.timeIn,
+      item.timeOut,
+      item.duration,
+      item.recDateTime,
+      item.empType,
+    ]);
 
-          // Add image to PDF (this could be done within the table but we're doing it separately)
-          doc.addImage(img, 'JPEG', x, y, 30, 30); // Add image at position x, y
-        });
-
-        // Save the generated PDF
-        doc.save('employee_report.pdf');
-      } else {
-        alert('No data to generate report');
-      }
+    // Adding the table using autoTable plugin
+    let yOffset = 40;
+    doc.autoTable({
+      head: [headers],
+      body: body,
+      startY: yOffset,
+      theme: 'grid',
+      columnStyles: {
+        1: { cellWidth: 30, cellHeight: 50 }, // Photo column
+      },
+      bodyStyles: {
+        valign: 'middle',
+        halign: 'center',
+      },
     });
+
+    // Add images to PDF: Convert the base64 image to a Blob and add it properly
+    reportData.forEach((item, index) => {
+      const base64Image = item.photo; // Base64 string (PNG format)
+      const x = 20;
+      const y = yOffset + 10 + (index + 1) * 20; // Position each image
+
+      // Add the image to the PDF (specify 'PNG' format)
+      doc.addImage(base64Image, 'PNG', x, y, 30, 30); // Use PNG as input format, as we have a base64 PNG string
+    });
+
+    // Trigger the PDF download
+    doc.save('employee_report.pdf');
+
+    // Close the preview modal
+    setOpenPreview(false);
   };
 
   return (
@@ -157,7 +141,7 @@ const DownloadReport = () => {
       <Button
         variant="contained"
         color="primary"
-        onClick={handleDownload}
+        onClick={fetchReportData}
         style={{
           marginTop: '20px',
           background: '#3f78ff',
@@ -172,12 +156,110 @@ const DownloadReport = () => {
         {loading ? (
           <>
             <CircularProgress size={24} style={{ marginRight: '10px' }} />
-            Downloading...
+            Loading...
           </>
         ) : (
           'Download Report'
         )}
       </Button>
+
+      {/* Modal for Preview */}
+      <Modal
+        open={openPreview}
+        onClose={() => setOpenPreview(false)}
+        aria-labelledby="preview-modal-title"
+        aria-describedby="preview-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'white',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            width: '80%',
+            maxHeight: '80%',
+            overflowY: 'auto',
+          }}
+        >
+          {/* Title with Date Range */}
+          <h2 id="preview-modal-title" style={{ fontWeight: 'bold', textAlign: 'center' }}>
+            Jakson Green - Report
+          </h2>
+          <p style={{ textAlign: 'center', fontSize: '16px' }}>
+              From:<strong> {startDate}</strong> To:<strong> {endDate}</strong>
+          </p>
+
+          {/* Table Preview */}
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: 'green' }}>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>S.No</th>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>Photo</th>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>Name</th>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>User ID</th>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>In-Time</th>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>Out-Time</th>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>Duration</th>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>Date</th>
+                <th style={{ border: '1px solid #ddd', color: '#fff', padding: '8px', textAlign: 'center' }}>Emp Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.map((item, index) => (
+                <tr key={index}>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>{item.sNo}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>
+                    <img src={item.photo} alt="Employee" style={{ maxWidth: '50px', maxHeight: '50px' }} />
+                  </td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>{item.empName}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>{item.userID}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>{item.timeIn}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>{item.timeOut}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>{item.duration}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>{item.recDateTime}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'center' }}>{item.empType}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Close and Save as PDF Buttons */}
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => setOpenPreview(false)} // Close modal
+            style={{
+              marginTop: '20px',
+              background: '#f44336',
+              color: 'white',
+              padding: '10px 25px',
+              borderRadius: '8px',
+              marginRight: '10px',
+            }}
+          >
+            Close
+          </Button>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={generatePDF}
+            style={{
+              marginTop: '20px',
+              background: '#3f78ff',
+              color: 'white',
+              padding: '10px 25px',
+              borderRadius: '8px',
+            }}
+          >
+            Save as PDF
+          </Button>
+        </Box>
+      </Modal>
     </div>
   );
 };

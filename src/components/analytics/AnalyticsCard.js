@@ -26,7 +26,7 @@ const AnalyticsCard = ({ record }) => {
         <div className="image-wrapper">
           <CardMedia
             component="img"
-            image={formatImageSrc(record.image)} // Using formatted image source here
+            image={formatImageSrc(record?.image)} // Using formatted image source here
             alt="Overgrasss"
             sx={{
               cursor: 'pointer',
@@ -42,16 +42,16 @@ const AnalyticsCard = ({ record }) => {
         {/* Card Content */}
         <CardContent sx={{ textAlign: 'left' }}>
           <Typography variant="h5" className="license-plate bogus">
-            {record.detection_type || 'Unknown'}
+            {record?.detection_type || record?.name || 'Unknown'}
           </Typography>
           <Typography variant="h5" className="license-plate bogus">
-            {record.camera_id || 'Unknown'}
+            {record?.camera_id || 'Unknown'}
           </Typography>
           <Typography variant="body2" className="timestamp bogus">
-            Date: {record.date || 'N/A'}
+            Date: {record?.date || 'N/A'}
           </Typography>
           <Typography variant="body2" className="time">
-            Time: {record.time || 'N/A'}
+            Time: {record?.time || 'N/A'}
           </Typography>
         </CardContent>
       </Card>
@@ -85,7 +85,7 @@ const AnalyticsCard = ({ record }) => {
 
           {/* Large Image */}
           <img
-            src={formatImageSrc(record.image)} // Again, format the image for modal
+            src={formatImageSrc(record?.image)} // Again, format the image for modal
             alt="Large License Plate"
             style={{
               maxWidth: '90%', // Limit image width to 90% of the screen width

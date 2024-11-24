@@ -1,15 +1,170 @@
 import React, { useEffect, useState } from 'react';
 import { TextField, Button, Grid, MenuItem, Select, FormControl, InputLabel, CircularProgress } from '@mui/material';
+// import { CloseSvg } from 'assets/images/Expand';
 
 const DownloadModal = () => {
+
+// Utility function to check if the image is a base64 string
+const isBase64Image = (image) => {
+  return image && image.startsWith('data:image');
+};
+
+// Format the image source for base64
+const formatImageSrc = (image) => {
+  return isBase64Image(image) ? image : `data:image/png;base64,${image}`;
+};
+  // const [date, setDate] = useState({
+  //   startDate: '',
+  //   endDate: '',
+  //   startTime: '',
+  //   endTime: '',
+  // });
+  // const [objectName, setObjectName] = useState('');
+  // const [loading, setLoading] = useState(false);
+
+  // suraj
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true); // Loading state for initial data fetch
+  // const [error, setError] = useState(null); // Error state
   const [date, setDate] = useState({
     startDate: '',
     endDate: '',
     startTime: '',
     endTime: '',
   });
-  const [objectName, setObjectName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [objectName, setObjectName] = useState(''); // State for selected object
+  const [searching, setSearching] = useState(false); // State to track search action
+
+  const [selectedPage, setSelectedPage] = useState(localStorage.getItem('selectedIndex') || 0); 
+  // const location = useLocation(); // Get current URL to detect changes in selected page
+
+  // API endpoints for dynamic fetch
+  const apiEndpoints = [
+    '', // Placeholder for non-searchable solutions
+    'https://jakson-cairo.online:8094/api/Employee/GetAnprData',
+    '',
+    'https://jakson-cairo.online:8094/api/Employee/GetAnprVechileDetaildata',
+    'https://jakson-cairo.online:8094/api/Fire/GetFire_Record',
+    'https://jakson-cairo.online:8094/api/Fire/GetDetection_Data',
+    'https://jakson-cairo.online:8094/api/Fire/Gethumanfall_Data',
+    'https://jakson-cairo.online:8094/api/Fire/GetOverGrass_Data',
+    'https://jakson-cairo.online:8094/api/Fire/GetCrowd_Record',
+    'https://jakson-cairo.online:8094/api/Fire/AnimalDetection_Data',
+    'https://jakson-cairo.online:8094/api/Fire/OverSpeed_Data',
+    '',
+  ];
+
+  // API search endpoints for dynamic fetch
+  const searchApiEndpoints = {
+    0: '',
+    1: 'https://jakson-cairo.online:8094/api/Employee/GetAnprDataSerch',
+    2: 'https://jakson-cairo.online:8094/api/Employee/GetAnprVechileDetaildataserch',
+    3: '',
+    4: 'https://jakson-cairo.online:8094/api/Fire/GetFire_RecordSerch',
+    5: 'https://jakson-cairo.online:8094/api/Fire/GetDetection_Dataserch',
+    6: 'https://jakson-cairo.online:8094/api/Fire/Gethumanfall_DataSerch',
+    7: 'https://jakson-cairo.online:8094/api/Fire/GetOverGrass_Dataserch',
+    8: 'https://jakson-cairo.online:8094/api/Fire/GetCrowd_Recordserch',
+    9: 'https://jakson-cairo.online:8094/api/Fire/GetAnimal_DataSerch',
+  };
+
+  console.log(`DownloadModal Data: ${data}`);
+  // console.log(`DownloadModal apiData: ${apiData}`);
+
+  
+  // Fetch data based on selected index
+  const fetchData = async (index, filters = {}) => {
+    setLoading(true);
+    // setError(null); // Reset error state before new fetch
+    const apiEndpoint = index >= 0 && index <= 11 ? apiEndpoints[index] : '';
+    const searchEndpoint = searchApiEndpoints[index];
+    console.log(searchEndpoint);
+    console.log(apiEndpoint);
+    
+    
+    
+    // Determine if search API should be called
+    const url = searchEndpoint && Object.keys(filters).length > 0
+      ? `${searchEndpoint}?date=${filters?.date}&camera=${filters?.camera}&time=${filters?.time}&objectname=${filters?.objectname}`
+      : apiEndpoint;
+
+    try {
+      // console.log(`Fetching data from: ${url}`);  // Log the URL being fetched
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+
+      const text = await response.text();
+      let apiData = null;
+      
+
+      try {
+        apiData = JSON.parse(text);  // Try parsing the response text into JSON
+        console.log("API Response:", apiData); // Log the raw API response
+      } catch (jsonError) {
+        throw new Error(`Failed to parse response: ${text}`);
+      }
+
+      // If the data is empty or null, handle that scenario
+      if (!apiData || apiData.length === 0) {
+        setData([]);
+        // setError("No Data Available");
+        return;
+      }
+
+      // Format the data
+      const formattedData = apiData?.map((item, index) => ({
+        image: item?.photo || item?.imagedata || 'N/A',
+        detection_type: item?.detection_type || item?.name || 'N/A',
+        camera_id: item?.camera_id || item?.camera || `Camera ${index + 1}`,
+        date: item?.date || 'Unknown Date',
+        time: item?.time || 'Unknown Time',
+      }));
+
+      setData(formattedData);
+
+    } catch (err) {
+      console.error("API Error:", err);
+      // setError(`Error fetching data: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setSearching(false); // Reset searching state after fetch is complete
+    }
+  };
+
+  // Fetch data on page load and when the selected page changes
+  useEffect(() => {
+    const selectedIndex = parseInt(localStorage.getItem('selectedIndex')) || 0; // Default to 0 if not found
+    setSelectedPage(selectedIndex);
+    fetchData(selectedIndex); // Call fetchData with the selected index
+  }, [location.pathname]);
+
+  // Handle date change
+  const handleDateChange = (e) => {
+    const { id, value } = e.target;
+    setDate((prevDate) => ({ ...prevDate, [id]: value }));
+  };
+
+  // Handle object selection change
+  const handleObjectChange = (event) => {
+    setObjectName(event.target.value);
+  };
+
+  // Handle Search action
+  const handleSearch = () => {
+    const filters = {
+      date: date.startDate,
+      camera: date.startTime,
+      time: date.endTime,
+      objectname: objectName,
+    };
+
+    console.log("Filters sent to API:", filters); // Log the filters being sent to the API
+
+    // setSearching(true);  // Set searching state to true while search is in progress
+    fetchData(selectedPage, filters);  // Trigger the data fetch with selected filters
+  };
+  // suraj
 
   useEffect(() => {
     const today = new Date();
@@ -24,19 +179,22 @@ const DownloadModal = () => {
     });
   }, []);
 
-  const handleDateChange = e => {
-    const { id, value } = e.target;
-    setDate(prevDate => ({ ...prevDate, [id]: value }));
-  };
+  // const handleDateChange = e => {
+  //   const { id, value } = e.target;
+  //   setDate(prevDate => ({ ...prevDate, [id]: value }));
+  // };
 
-  const handleObjectChange = event => {
-    setObjectName(event.target.value);
-  };
+  // const handleObjectChange = event => {
+  //   setObjectName(event.target.value);
+  // };
+
+
 
   const handleDownload = () => {
+    handleSearch();
     setLoading(true);
-
-    // Construct the HTML content for the report
+   
+     // Construct the HTML content for the report
     const content = `
       <html>
         <head>
@@ -63,8 +221,8 @@ const DownloadModal = () => {
           <h2>Jakson Green - Report</h2>
           <div class="report-details">
             <p><span>From: ${date.startDate || 'N/A'} ${date.startTime || 'undefined'}</span>  <span>To: ${date.endDate || 'N/A'} ${
-      date.endTime || 'undefined'
-    }</span></p>
+    date.endTime || 'undefined'}
+      </span></p>
           </div>
           <table>
             <thead>
@@ -79,34 +237,17 @@ const DownloadModal = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>1</td>
-                <td>Default</td>
-                <td>Service_cam</td>
-                <td>uncleaned</td>
-                <td>05/11/2024</td>
-                <td>N/A</td>
-                <td><img src="https://via.placeholder.com/100" alt="Sample" width="50" height="50" /></td>
-              </tr>
-              <tr>
-                <td>2</td>
-                <td>Default</td>
-                <td>Service_cam</td>
-                <td>uncleaned</td>
-                <td>05/11/2024</td>
-                <td>N/A</td>
-                <td><img src="https://via.placeholder.com/100" alt="Sample" width="50" height="50" /></td>
-              </tr>
-              <tr>
-                <td>3</td>
-                <td>Default</td>
-                <td>Service_cam</td>
-                <td>uncleaned</td>
-                <td>05/11/2024</td>
-                <td>N/A</td>
-                <td><img src="https://via.placeholder.com/100" alt="Sample" width="50" height="50" /></td>
-              </tr>
-              
+                ${data?.map((item, index) => `
+                <tr key="${index}">
+                  <td>${index + 1}</td>
+                  <td>${item.camera_id}</td>
+                  <td>${item.detection_type}</td>
+                  <td>COOK</td>
+                  <td>${item.date}</td>
+                  <td>N/A</td>
+                  <td><img src="${formatImageSrc(item?.image)}" alt="Sample" width="50" height="50" /></td>
+                </tr>
+              `).join('')}       
             </tbody>
           </table>
         </body>
@@ -127,7 +268,7 @@ const DownloadModal = () => {
     printWindow.onload = () => {
       printWindow.print();
       printWindow.close();
-      setLoading(false);
+      setLoading(true);
     };
   };
 
@@ -145,6 +286,7 @@ const DownloadModal = () => {
               <MenuItem value="three">Three</MenuItem>
             </Select>
           </FormControl>
+
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField
@@ -171,6 +313,7 @@ const DownloadModal = () => {
               />
             </Grid>
           </Grid>
+
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField
@@ -213,7 +356,7 @@ const DownloadModal = () => {
             }}
             disabled={loading}
           >
-            {loading ? (
+            {loading || searching ? (
               <>
                 <CircularProgress size={24} style={{ marginRight: '10px' }} />
                 Downloading...
@@ -222,6 +365,7 @@ const DownloadModal = () => {
               'Download Report'
             )}
           </Button>
+
         </Grid>
       </Grid>
     </div>

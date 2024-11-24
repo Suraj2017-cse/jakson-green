@@ -2,6 +2,8 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Avatar } from '@mui/material';
 
 const DynamicTable = ({ data }) => {
+  console.log(data);
+  
   return (
     <TableContainer component={Paper}>
       <Table>

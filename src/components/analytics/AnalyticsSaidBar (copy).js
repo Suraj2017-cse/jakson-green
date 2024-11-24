@@ -6,7 +6,7 @@ import { useLocation } from 'react-router-dom';
 
 const AnalyticsSidebar = () => {
   const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true); // Loading state for initial data fetch
+  const [loading, setLoading] = useState(true);  // Loading state for initial data fetch
   const [error, setError] = useState(null); // Error state
   const [date, setDate] = useState({
     startDate: '',
@@ -24,12 +24,12 @@ const AnalyticsSidebar = () => {
   const apiEndpoints = [
     '', // Placeholder for non-searchable solutions
     'https://jakson-cairo.online:8094/api/Employee/GetAnprData',
-    '',
     'https://jakson-cairo.online:8094/api/Employee/GetAnprVechileDetaildata',
+    '',
     'https://jakson-cairo.online:8094/api/Fire/GetFire_Record',
     'https://jakson-cairo.online:8094/api/Fire/GetDetection_Data',
     'https://jakson-cairo.online:8094/api/Fire/Gethumanfall_Data',
-    'https://jakson-cairo.online:8094/api/Fire/GetOverGrass_Data',
+    'https://jakson-cairo.online:8094/api/Fire/GetOverGrass_Data', 
     'https://jakson-cairo.online:8094/api/Fire/GetCrowd_Record',
     'https://jakson-cairo.online:8094/api/Fire/AnimalDetection_Data',
     'https://jakson-cairo.online:8094/api/Fire/OverSpeed_Data',
@@ -50,18 +50,12 @@ const AnalyticsSidebar = () => {
     9: 'https://jakson-cairo.online:8094/api/Fire/GetAnimal_DataSerch',
   };
 
-  
-    
   // Fetch data based on selected index
   const fetchData = async (index, filters = {}) => {
     setLoading(true);
-    setError(null); // Reset error state before new fetch
+    setError(null);  // Reset error state before new fetch
     const apiEndpoint = index >= 0 && index <= 11 ? apiEndpoints[index] : '';
     const searchEndpoint = searchApiEndpoints[index];
-    console.log(searchEndpoint);
-    console.log(apiEndpoint);
-    
-    
     
     // Determine if search API should be called
     const url = searchEndpoint && Object.keys(filters).length > 0
@@ -69,14 +63,13 @@ const AnalyticsSidebar = () => {
       : apiEndpoint;
 
     try {
-      // console.log(`Fetching data from: ${url}`);  // Log the URL being fetched
+      console.log(`Fetching data from: ${url}`);  // Log the URL being fetched
 
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
 
       const text = await response.text();
       let apiData = null;
-      
 
       try {
         apiData = JSON.parse(text);  // Try parsing the response text into JSON
@@ -144,11 +137,27 @@ const AnalyticsSidebar = () => {
     setSearching(true);  // Set searching state to true while search is in progress
     fetchData(selectedPage, filters);  // Trigger the data fetch with selected filters
   };
-  console.log(`saidBar Data: ${data}`);
-  
+
+  // Render loading spinner or error if applicable
+  if (loading || searching) {
+    return (
+      <Grid container justifyContent="center" alignItems="center" style={{ height: '100vh' }}>
+        <CircularProgress />
+      </Grid>
+    );
+  }
+
+  if (error) {
+    return (
+      <Grid container justifyContent="center" alignItems="center" style={{ height: '100vh' }}>
+        <div>{error}</div>
+      </Grid>
+    );
+  }
+
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12} md={3} sx={{ position: 'sticky', top: 0, height: '100vh', backgroundColor: '#fff' }}>
+      <Grid item xs={12} md={3}>
         <Card sx={{ padding: 2 }}>
           {/* Filters */}
           <FormControl fullWidth margin="normal">
@@ -229,25 +238,11 @@ const AnalyticsSidebar = () => {
       <Grid item xs={12} md={9}>
         <Card sx={{ padding: 3 }}>
           <Grid container id="cardContainer" spacing={3}>
-            {loading || searching ? (
-              <Grid item xs={12} container justifyContent="center">
-                <CircularProgress />
+            {data?.map((record, index) => (
+              <Grid item key={index} xs={12} sm={6} md={4}>
+                <AnalyticsCard key={index} record={record} />
               </Grid>
-            ) : error ? (
-              <Grid item xs={12}>
-                <div>{error}</div>
-              </Grid>
-            ) : data?.length > 0 ? (
-              data?.map((record, index) => (
-                <Grid item key={index} xs={12} sm={6} md={4}>
-                  <AnalyticsCard key={index} record={record} />
-                </Grid>
-              ))
-            ) : (
-              <Grid item xs={12}>
-                <div>No results found</div>
-              </Grid>
-            )}
+            ))}
           </Grid>
         </Card>
       </Grid>

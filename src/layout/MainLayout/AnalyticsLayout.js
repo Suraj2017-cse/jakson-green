@@ -84,7 +84,7 @@ const AnalyticsLayout = () => {
             Download Report
           </Typography>
 
-          <DownloadModal />
+          <DownloadModal  />
         </Box>
       </Modal>
     </>

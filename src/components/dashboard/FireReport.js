@@ -365,7 +365,9 @@ const EcommerceDataChart = ({ sx, seriesData, chartType }) => {
   const [options, setOptions] = useState(areaChartOptions);
 
   const formatDate = (dateString) => {
-    const [day, month, year] = dateString.split('.').map((part) => parseInt(part, 10));
+    // const [day, month, year] = dateString?.split('.')?.map((part) => parseInt(part, 10));
+    const [day, month, year] = (dateString ?? '').split('.').map((part) => parseInt(part, 10));
+
     const date = new Date(year, month - 1, day);
     return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date);
   };
