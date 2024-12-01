@@ -448,7 +448,7 @@ const FireReport = () => {
 
     setLoadingState(true);
     try {
-      const response = await fetch(`https://jakson-cairo.online:8094/api/Fire/NatureDataReport?type=${type}`);
+      const response = await fetch(`https://jakson-cairo-api.me:4420/api/Fire/NatureDataReport?type=${type}`);
       const data = await response.json();
 
       setter(data);
