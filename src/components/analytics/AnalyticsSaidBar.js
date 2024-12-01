@@ -30,7 +30,6 @@ const AnalyticsSidebar = () => {
     const savedLabel = localStorage.getItem('selectedLabel');
     const savedValue = localStorage.getItem(savedLabel);
     console.warn(savedValue);
-    
 
     // Set the label and value
     setSelectedLabel(savedLabel || ''); // Default to empty if no label exists
@@ -52,7 +51,6 @@ const AnalyticsSidebar = () => {
     }
   }, []);
 
-  
   // API endpoints for dynamic fetch
   const apiEndpoints = [
     '', // Placeholder for non-searchable solutions
@@ -62,7 +60,7 @@ const AnalyticsSidebar = () => {
     'https://www.jakson-cairo-api.me:4420/api/Fire/GetFire_Record',
     'https://www.jakson-cairo-api.me:4420/api/Fire/GetDetection_Data',
     'https://www.jakson-cairo-api.me:4420/api/Fire/Gethumanfall_Data',
-    'https://www.jakson-cairo-api.me:4420/api/Fire/GetOverGrass_Data', 
+    'https://www.jakson-cairo-api.me:4420/api/Fire/GetOverGrass_Data',
     'https://www.jakson-cairo-api.me:4420/api/Fire/GetCrowd_Record',
     'https://www.jakson-cairo-api.me:4420/api/Fire/AnimalDetection_Data',
     '',
@@ -87,50 +85,49 @@ const AnalyticsSidebar = () => {
     11: 'https://www.jakson-cairo-api.me:4420/api/Fire/GetMotorcycleDetectionData',
   };
 
-
   const handleSearch = () => {
     setSubmitted(true); // Set submitted to show validation errors
-  
+
     if (!date.startDate || !date.startTime || !date.endDate || !date.endTime) {
       console.log("Validation failed: Missing required fields");
       return; // Prevent API call if validation fails
     }
-  
+
     // Combine date and time into datetime format for the API
     const startDateTime = `${date.startDate} ${date.startTime}:00.000`;
     const endDateTime = `${date.endDate} ${date.endTime}:00.000`;
-  
-    // Map special cases for dropdown values
+
+  // Map special cases for dropdown values
     const objectTypeMap = {
       "Big Grass": "BigGrass",
       "Human": "person", // Example for earlier requirement
     };
-  
+
     // Resolve object type using the map; if not in the map, use the dropdown value directly
     const resolvedObjectType = objectName !== "All" ? objectTypeMap[objectName] || objectName : null;
-  
+
     // Include `objectType` only for specific detections
     const shouldIncludeObjectType = [4, 9].includes(selectedPage); // Adjust indices for specific detections
-  
+
     const filters = {
       startDateTime,
       endDateTime,
       ...(shouldIncludeObjectType && resolvedObjectType ? { objectType: resolvedObjectType } : {}), // Conditionally add objectType
     };
-  
+
     console.log("Filters sent to API:", filters);
-  
+
     setSearching(true);
     fetchData(selectedPage, filters);
   };
-  
+
   const fetchData = async (index, filters = {}) => {
     setLoading(true);
     setError(null);
-  
+
     const apiEndpoint = index >= 0 && index <= 11 ? apiEndpoints[index] : '';
     const searchEndpoint = searchApiEndpoints[index];
-  
+
     // Build query parameters dynamically
     const queryParams = new URLSearchParams();
     queryParams.append("startDate", filters.startDateTime);
@@ -138,44 +135,44 @@ const AnalyticsSidebar = () => {
     if (filters.objectType) {
       queryParams.append("objectType", filters.objectType); // Add only if objectType is provided
     }
-  
+
     const url = searchEndpoint && Object.keys(filters).length > 0
       ? `${searchEndpoint}?${queryParams.toString()}`
       : apiEndpoint;
-  
+
     try {
       console.log(`Fetching data from: ${url}`);
-  
+
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
-  
+
       const text = await response.text();
       let apiData = null;
-  
+
       try {
         apiData = JSON.parse(text);
         console.log("API Response:", apiData);
       } catch (jsonError) {
         throw new Error(`Failed to parse response: ${text}`);
       }
-  
+
       if (!apiData || apiData.length === 0) {
         setData([]);
         setError("No Data Available");
         return;
       }
-  
+
       const formattedData = apiData?.map((item, index) => {
         const cameraId = item?.camera_id;
         const camera = item?.camera;
-  
+
         const isDefault = (value) => value?.toLowerCase() === "default";
-  
+
         const resolvedCamera = 
           isDefault(cameraId) ? camera 
           : isDefault(camera) ? cameraId 
           : cameraId || camera || `Camera ${index + 1}`;
-  
+
         return {
           image: item?.photo || item?.imagedata || 'N/A',
           detection_type: item?.detection_type || item?.name || 'N/A',
@@ -184,9 +181,8 @@ const AnalyticsSidebar = () => {
           time: item?.time || 'Unknown Time',
         };
       });
-  
+
       setData(formattedData);
-  
     } catch (err) {
       console.error("API Error:", err);
       setError(`Error fetching data: ${err.message}`);
@@ -195,7 +191,7 @@ const AnalyticsSidebar = () => {
       setSearching(false);
     }
   };
-  
+
   useEffect(() => {
     const selectedIndex = parseInt(localStorage.getItem('selectedIndex')) || 0; 
     setSelectedPage(selectedIndex);
